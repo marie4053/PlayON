@@ -8,9 +8,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/components/ui/input';
 import { FormControl, FormField, FormItem, Form } from '@/components/ui/form';
-import { ImageIcon, SearchIcon } from 'lucide-react';
+import { EditIcon, ImageIcon, SearchIcon } from 'lucide-react';
 import CategoryMenu from '@/components/common/category-menu';
 import { guildTags } from '@/types/Tags/guildTags';
+import SelectedGameCard, { SelectedGameCardSkeleton } from '@/components/game/SelectedGameCard';
+
+import { dummyGameSimple } from '@/utils/dummyData';
+import { ChangeEvent, useState } from 'react';
 
 const createGuildFormSchema = z.object({
   public: z.boolean(),
@@ -44,10 +48,46 @@ export default function GuildCreate(props: GuildCreateProps) {
     },
     resolver: zodResolver(createGuildFormSchema),
   });
+  const [imageFile, setImageFile] = useState<string>('');
+
+  const onChangeImage = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      //validation here
+      const reader = new FileReader();
+      reader.readAsDataURL(e.target.files[0]);
+      reader.onloadend = () => {
+        setImageFile(reader.result ? reader.result.toString() : '');
+      };
+    }
+  };
 
   async function onSubmit(data: z.infer<typeof createGuildFormSchema>) {
     console.log(data);
   }
+
+  const NoImageInput = () => {
+    return (
+      <>
+        <label htmlFor="guild_image" className="border border-neutral-300 rounded h-44 cursor-pointer">
+          <div className="w-full h-full flex items-center justify-center">
+            <ImageIcon className="text-neutral-400" strokeWidth={1} width={40} height={40} />
+          </div>
+        </label>
+      </>
+    );
+  };
+  const ImageWithChange = () => {
+    return (
+      <div className="relative h-44 overflow-hidden rounded">
+        <img src={imageFile} alt="" />
+        <div className="absolute w-full h-full top-0 left-0 bg-black opacity-0 hover:opacity-25 transition-opacity rounded flex items-start justify-end p-2">
+          <label htmlFor="guild_image" className="cursor-pointer">
+            <EditIcon className="text-white" />
+          </label>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="mt-12 mb-32 flex justify-center">
@@ -55,7 +95,9 @@ export default function GuildCreate(props: GuildCreateProps) {
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <div className="flex justify-center gap-6">
             <div className="min-w-[411px] flex flex-col items-end">
-              <div className="w-full h-[180px] bg-neutral-400 rounded-2xl"></div>
+              <div className="w-full h-[180px] rounded-2xl border border-neutral-300">
+                <SelectedGameCard data={dummyGameSimple} />
+              </div>
               <div className="flex items-center gap-2 mt-[25px]">
                 <FormField
                   control={form.control}
@@ -81,12 +123,8 @@ export default function GuildCreate(props: GuildCreateProps) {
                     가로 nnpx 세로 nnpx 이상의 사이즈를 권장합니다. 최대 500kb까지
                   </span>
                 </p>
-                <label htmlFor="guild_image" className="border border-neutral-300 rounded h-44 cursor-pointer">
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon className="text-neutral-400" strokeWidth={1} width={40} height={40} />
-                  </div>
-                </label>
-                <input type="file" name="guild_image" id="guild_image" accept="image/*" />
+                {imageFile ? <ImageWithChange /> : <NoImageInput />}
+                <input type="file" name="guild_image" id="guild_image" accept="image/*" onChange={onChangeImage} />
               </div>
               <div className="flex flex-col gap-4">
                 <p className="h2">길드 이름</p>
@@ -164,7 +202,7 @@ export default function GuildCreate(props: GuildCreateProps) {
               </div>
               <div className="flex flex-col gap-2">
                 <p className="h2">참가 제한 조건</p>
-                <div className="flex flex-col bg-neutral-50 rounded-xl gap-5 py-10 px-10">
+                <div className="flex flex-col bg-neutral-50 rounded-xl gap-5 py-6 px-6">
                   {Object.values(guildTags).map((e) => (
                     <div className="flex items-center gap-2" key={`${e.name}`}>
                       <p className="w-[118px] font-dgm text-neutral-900">{e.name}</p>
@@ -172,7 +210,7 @@ export default function GuildCreate(props: GuildCreateProps) {
                         categoryItems={[...e.items]}
                         categoryName={e.name}
                         onSelect={(newSelected: boolean[]) => {
-                          console.log(newSelected);
+                          // console.log(newSelected);
                         }}
                       />
                     </div>
