@@ -41,10 +41,11 @@ export default function GuildCreate(props: GuildCreateProps) {
       name: '',
       limit_people: 10,
       game: '',
-      partyStyle: [],
-      skillLevel: [],
-      gender: [],
-      friendly: [],
+      partyStyle: ['전체'],
+      skillLevel: ['전체'],
+      gender: ['전체'],
+      friendly: ['전체'],
+      desc: '',
     },
     resolver: zodResolver(createGuildFormSchema),
   });
@@ -225,14 +226,13 @@ export default function GuildCreate(props: GuildCreateProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <div className="flex flex-col gap-2 border border-neutral-300 rounded-lg h-20">
-                          <Input
-                            className={`border-none focus-visible:ring-transparent shadow-none`}
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="파티 룸 소개"
-                          />
-                        </div>
+                        <div
+                          className="flex flex-col gap-2 border border-neutral-300 rounded-lg min-h-20 p-2"
+                          contentEditable="plaintext-only"
+                          onBlur={(e) => {
+                            form.setValue('desc', e.currentTarget.textContent ?? '');
+                          }}
+                        ></div>
                       </FormControl>
                     </FormItem>
                   )}
@@ -244,7 +244,7 @@ export default function GuildCreate(props: GuildCreateProps) {
             <RetroButton type="purple" className="w-24 h-12">
               취소
             </RetroButton>
-            <button type="submit">
+            <button type="submit" onClick={() => console.log(form.formState.errors)}>
               <RetroButton type="purple" className="w-60 h-12">
                 파티 생성
               </RetroButton>
