@@ -15,6 +15,7 @@ import SelectedGameCard, { SelectedGameCardSkeleton } from '@/components/game/Se
 
 import { dummyGameSimple } from '@/utils/dummyData';
 import { ChangeEvent, useState } from 'react';
+import { Textarea } from '@/components/ui/textarea';
 
 const createGuildFormSchema = z.object({
   public: z.boolean(),
@@ -226,13 +227,12 @@ export default function GuildCreate(props: GuildCreateProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <div
-                          className="flex flex-col gap-2 border border-neutral-300 rounded-lg min-h-20 p-2"
+                        <Textarea
+                          className="flex flex-col gap-2 border border-neutral-300 rounded-lg min-h-20 p-2 resize-none"
                           contentEditable="plaintext-only"
-                          onBlur={(e) => {
-                            form.setValue('desc', e.currentTarget.textContent ?? '');
-                          }}
-                        ></div>
+                          onChange={field.onChange}
+                          value={field.value}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -241,9 +241,9 @@ export default function GuildCreate(props: GuildCreateProps) {
             </div>
           </div>
           <div className="flex justify-end mt-11 gap-3">
-            <RetroButton type="purple" className="w-24 h-12">
+            <button className="bg-neutral-400 text-white rounded-full w-32 mt-2 h-12 hover:bg-neutral-600 transition-colors">
               취소
-            </RetroButton>
+            </button>
             <button type="submit" onClick={() => console.log(form.formState.errors)}>
               <RetroButton type="purple" className="w-60 h-12">
                 파티 생성
