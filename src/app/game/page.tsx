@@ -85,7 +85,7 @@ export default function Game() {
                   <div className="relative">
                     <img src={dummyGameSimple.img_src} className="w-full rounded-xl bg-neutral-400 object-cover" />
                     <div className="absolute top-0 left-0 pt-3 pl-3 w-32">
-                      <img src="/img/laurel/laurel_1st.png"/>
+                      <img src="/img/laurel/laurel_1st.png" />
                     </div>
                   </div>
 
