@@ -23,7 +23,7 @@ export default function Game() {
     <main>
       <section>
         <div className="w-screen relative">
-          <section className="w-full h-[520px] pt-16">
+          <section className="w-full h-[520px] pt-[68px]">
             <HeroSwiperBanner data={imageList}></HeroSwiperBanner>
           </section>
           {/* <img src="/img/hero/bg_game_2.webp" className="w-full h-[520px] object-cover" /> */}
