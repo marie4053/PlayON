@@ -11,6 +11,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { PATH } from '@/constants/routes';
+import { login } from '@/api/members/login';
+import { useMembers } from '@/api/members';
 
 const loginSchema = z.object({
   email: z.string(),
@@ -37,15 +40,16 @@ export default function SignupInitial() {
   });
   const router = useRouter();
 
-  function onSubmit(data: LoginSchema) {
-    console.log(data);
+  const members = useMembers();
+  async function onSubmit(data: LoginSchema) {
+    members.login('kylekim95@gmail.com', '1111');
   }
   const [submitHover, setSubmitHover] = useState(false);
 
   return (
     <div className="bg-purple-900 text-purple-400 w-full h-screen flex flex-col items-center mt-[68px]">
-      <div className="overlay"></div>
-      <div className="scanline"></div>
+      <div className="overlay pointer-events-none"></div>
+      <div className="scanline pointer-events-none"></div>
       <div className="scrollanimation">
         <div className="mt-16 flex flex-col pb-10">
           <div className="flex gap-5 mb-20">
@@ -96,22 +100,6 @@ export default function SignupInitial() {
                       </FormItem>
                     )}
                   />
-                  <p className="text-purple-500 font-dgm text-2xl glow">ENTER YOUR NICKNAME</p>
-                  <FormField
-                    control={form.control}
-                    name="nickname"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input
-                            className="border border-purple-500 rounded-none font-dgm !text-xl"
-                            value={field.value}
-                            onChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
                   <button
                     type="submit"
                     className="justify-self-center mt-5 flex items-center justify-center gap-2 border border-purple-500 hover:bg-purple-500 hover:text-white py-2 px-5"
@@ -138,7 +126,7 @@ export default function SignupInitial() {
           </div>
           <div className="flex flex-col items-center">
             <p className="font-dgm text-2xl glow">아이디가 없나요?</p>
-            <Link href="/signup">
+            <Link href={PATH.signup}>
               <p className="font-dgm text-2xl glow cursor-pointer hover:text-purple-200">{`[ 회원 가입하러 가기 ]`}</p>
             </Link>
           </div>
