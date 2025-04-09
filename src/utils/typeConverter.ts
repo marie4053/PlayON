@@ -43,6 +43,16 @@ const typeMap = {
       FEMALE: '여자만',
     },
   },
+  userGender: {
+    KoToEn: {
+      남자: 'MALE',
+      여자: 'FEMALE',
+    },
+    EnToKo: {
+      MALE: '남자',
+      FEMALE: '여자',
+    },
+  },
   friendly: {
     KoToEn: {
       '친목 환영': 'SOCIAL_FRIENDLY',

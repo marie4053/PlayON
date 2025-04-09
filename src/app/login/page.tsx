@@ -10,11 +10,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PATH } from '@/constants/routes';
 import { useMembers } from '@/api/members';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/stores/authStore';
+import typeConverter from '@/utils/typeConverter';
+import { uploadToS3 } from '@/utils/uploadToS3';
 
 const loginSchema = z.object({
   email: z.string().min(1, { message: '아이디를 입력해주세요' }),
@@ -51,6 +53,7 @@ export default function SignupInitial() {
 
     if (success) {
       const user = await members.GetMe();
+      console.log(user);
       if (user) {
         setUser(user);
       }
@@ -60,6 +63,11 @@ export default function SignupInitial() {
       }, 500);
     }
   }
+  async function steamLogin() {
+    const response = await members.steamAuthLogin();
+    window.location.href = response;
+  }
+
   const [submitHover, setSubmitHover] = useState(false);
 
   return (
@@ -113,7 +121,7 @@ export default function SignupInitial() {
                           {form.formState.errors.password ? (
                             <FormMessage className="font-dgm text-xl glow" />
                           ) : (
-                            <p className="font-dgm text-2xl glow">ENTER YOUR EMAIL</p>
+                            <p className="font-dgm text-2xl glow">ENTER YOUR PASSWORD</p>
                           )}
                         </div>
                         <FormControl>
@@ -145,6 +153,7 @@ export default function SignupInitial() {
                 className="p-2 flex items-center justify-center gap-2"
                 onMouseEnter={() => setSubmitHover(true)}
                 onMouseLeave={() => setSubmitHover(false)}
+                onClick={() => steamLogin()}
               >
                 <SteamSVG fill={`${submitHover ? '#bdb9f6' : '#8258ff'}`} stroke="" width={48} height={48} />
                 <p className={`text-4xl font-black ${submitHover ? 'text-purple-200 glow' : ''}`}>STEAM</p>
