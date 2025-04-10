@@ -4,9 +4,13 @@ import { userDetail } from '@/types/user';
 export const useAuthStore = create<{
   user: userDetail | undefined;
   setUser: (input: userDetail | undefined) => void;
+  logout: () => void;
 }>((set, get) => ({
   user: undefined,
   setUser: (input: userDetail | undefined) => {
     set({ user: input });
+  },
+  logout: () => {
+    set({ user: undefined });
   },
 }));
