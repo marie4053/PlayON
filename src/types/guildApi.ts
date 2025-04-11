@@ -1,6 +1,4 @@
-import { userSimple } from './user';
-
-type FileType = 'png' | 'jpg' | 'jpeg' | 'webp';
+type FileType = 'png' | 'jpg' | 'jpeg' | 'webp' | '';
 
 export type Sort = 'latest' | 'activity' | 'members';
 
