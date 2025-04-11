@@ -16,7 +16,7 @@ import { uploadToS3 } from '@/utils/uploadToS3';
 export const useGuild = () => {
   const axios = useAxios();
 
-  async function GetGuild(guildId: string) {
+  async function GetGuild(guildId: number) {
     const response = await axios.TypedGet<GuildDetailResponse>(GUILD.detail(guildId), {}, true);
     const data = response?.data;
     console.log(data);
@@ -41,7 +41,7 @@ export const useGuild = () => {
     return null;
   }
 
-  async function UpdateGuild(guildId: string, newData: GuildUpdateRequest) {
+  async function UpdateGuild(guildId: number, newData: GuildUpdateRequest) {
     try {
       const response = await axios.Put(GUILD.modify(guildId), newData, {}, true);
       const data = response?.data.data;
@@ -52,7 +52,7 @@ export const useGuild = () => {
     }
   }
 
-  async function DeleteGuild(guildId: string) {
+  async function DeleteGuild(guildId: number) {
     const response = await axios.Delete(GUILD.delete(guildId), {}, true);
     const data = response?.data;
     if (data.msg === 'OK') {
@@ -75,8 +75,9 @@ export const useGuild = () => {
       },
       true
     );
+    console.log(response);
     const data = response?.data.data.items;
-    // console.log(data);
+    console.log(data);
     if (data && data.length > 0) {
       const guildList: guild[] = data.map((item: GuildSimple) => {
         const tags = categorizeTags(item.tags);
@@ -94,8 +95,13 @@ export const useGuild = () => {
           friendly: tags.friendly,
         };
       });
-      console.log(guildList);
-      return guildList;
+      return {
+        currentPageNumber: response.data.data.currentPageNumber,
+        pageSize: response.data.data.pageSize,
+        totalItems: response.data.data.totalItems,
+        totalPages: response.data.data.totalPages,
+        guildList: guildList,
+      };
     }
     console.log('데이터가 없습니다.');
     return null;
@@ -135,7 +141,7 @@ export const useGuild = () => {
       console.log('길드 생성 중 오류 발생: ', error);
     }
   }
-  async function UpdateGuildWithImg(guildId: string, newData: GuildUpdateRequest, imageFile: File | null) {
+  async function UpdateGuildWithImg(guildId: number, newData: GuildUpdateRequest, imageFile: File | null) {
     try {
       // 1. 길드 수정
       const updateResponse = await UpdateGuild(guildId, newData);
@@ -159,7 +165,7 @@ export const useGuild = () => {
     }
   }
 
-  async function GetAdmin(guildId: string) {
+  async function GetAdmin(guildId: number) {
     const response = await axios.TypedGet<GuildAdminResponse>(GUILD.admin(guildId), {}, true);
     const data = response?.data;
     // console.log(data);
@@ -185,14 +191,15 @@ export const useGuild = () => {
     return null;
   }
 
-  async function GetGuildMembers(guildId: string) {
+  async function GetGuildMembers(guildId: number) {
     const response = await axios.TypedGet<GuildDetailMemberResponse>(GUILD.detail_member(guildId), {}, true);
     const data = response?.data;
     console.log(data);
+    return data;
   }
 
-  async function UploadImageURL(guildId: string, url: string) {
-    const response = await axios.PostText(GUILD.upload_image(guildId), url, {}, true);
+  async function UploadImageURL(guildId: number, url: string) {
+    const response = await axios.Post(GUILD.upload_image(guildId), { url: url }, {}, true);
     console.log(response);
     if (response?.status === 204) {
       return true;
@@ -200,7 +207,7 @@ export const useGuild = () => {
     return false;
   }
 
-  async function GetGuildRecommend(appid: string, count?: number) {
+  async function GetGuildRecommend(appid: number, count?: number) {
     const response = await axios.TypedGet<GuildMainResponse>(
       GUILD.recommend,
       {
