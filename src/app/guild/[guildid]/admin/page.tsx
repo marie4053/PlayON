@@ -45,11 +45,6 @@ export function parseGuildUser(raw: any): guildUser {
 
 export default function GuildAdmin() {
   const [members, setMembers] = useState<guildUserProps[]>([]);
-  const { PutManager, DeleteManager, GetMembers, InviteMembers, DeleteMembers, GetAdmin, LeaveMembers, LeaveMembers2 } =
-    useGuildsMembers();
-
-  const params = useParams();
-  const guildid = params?.guildid as string;
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const params = useParams();
@@ -86,6 +81,7 @@ const [guildInfo, setGuildInfo] = useState<{
     ? Math.floor((new Date().getTime() - new Date(guildInfo.createdDate).getTime()) / (1000 * 60 * 60 * 24))
     : 0;
 
+
   const fetchData = async () => {
     try {
       const data = await GetMembers(guildid);
@@ -119,7 +115,7 @@ const [guildInfo, setGuildInfo] = useState<{
   // const leader = members.find((m) => m.data.guild_role === 'LEADER');
   const managers = members.filter((m) => m.data.guild_role === 'MANAGER');
 
-// 길드 멤버 초대 핸들러
+  // 길드 멤버 초대 핸들러
   const handleInviteMember = async (username: string) => {
     if (!username) {
       alert('USERNAME을 입력해주세요.');
@@ -135,10 +131,10 @@ const [guildInfo, setGuildInfo] = useState<{
         await fetchData();
 
       } else {
-        alert(response?.data.message  '초대 실패');
+        alert(response?.data.message || '초대 실패');
       }
     } catch (error: any) {
-      alert(error?.response?.data?.message  '서버 오류');
+      alert(error?.response?.data?.message || '서버 오류');
     } finally {
       setLoading(false);
     }

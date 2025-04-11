@@ -74,6 +74,7 @@ export const useGuildsMembers = () => {
   }
 
   // 길드 관리페이지 길드정보
+
   async function GetAdmin(guildId: string) {
     const response = await axios.Get(
       guildMember.get_admin(guildId),
