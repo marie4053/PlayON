@@ -15,6 +15,7 @@ import { PATH } from '@/constants/routes';
 import { useMembers } from '@/api/members';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/stores/authStore';
+import { uploadToS3 } from '@/utils/uploadToS3';
 
 const loginSchema = z.object({
   email: z.string().min(1, { message: '아이디를 입력해주세요' }),
