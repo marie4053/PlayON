@@ -18,8 +18,7 @@ export const useGuildsMembers = () => {
 
   // 매니저 권한 회수
   async function DeleteManager(guildId: string, targetMemberId: string) {
-    const response = await axios.Delete(guildMember.delete_manager(guildId),
-      { data: { targetMemberId } }, true);
+    const response = await axios.Delete(guildMember.delete_manager(guildId), { data: { targetMemberId } }, true);
     const data = response?.data;
     console.log(data);
   }
@@ -73,7 +72,6 @@ export const useGuildsMembers = () => {
     const data = response?.data;
     console.log(data);
   }
-
 
   // 길드 관리페이지 길드정보
   async function GetAdmin(guildId: string) {
