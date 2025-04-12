@@ -1,21 +1,21 @@
 'use client';
+
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { useParty } from '@/api/party';
+import { useRouter } from 'next/navigation';
+import { PATH } from '@/constants/routes';
+import { gameSimple } from '@/types/games';
+import { getPartyRes } from '@/types/party';
 import HeroTypingBanner from '@/components/common/HeroTypingBanner';
 import PlayOnRollingBanner from '@/components/common/play-on-rolling-banner';
 import RetroButton from '@/components/common/RetroButton';
 import SearchBar from '@/components/common/SearchBar';
 import SectionBanner from '@/components/common/SectionBanner';
 import SectionTitle from '@/components/common/SectionTitle';
-import PartyCard from '@/components/party/PartyCard';
-import PartyLogCard from '@/components/party/PartyLogCard';
+import PartyCard, { PartyCardSkeleton } from '@/components/party/PartyCard';
+import PartyLogCard, { PartyLogCardSkeleton } from '@/components/party/PartyLogCard';
 import PixelCharacter from '@/components/PixelCharacter/PixelCharacter';
-import { PATH } from '@/constants/routes';
-import { gameSimple } from '@/types/games';
-import { party, partyLog } from '@/types/party';
-import { dummyParty, dummyPartyLog } from '@/utils/dummyData';
-import Link from 'next/link';
-
-import { useState } from 'react';
 
 const popularGames: gameSimple[] = [
   {
@@ -34,18 +34,31 @@ const popularGames: gameSimple[] = [
 
 export default function Party() {
   const party = useParty();
-  party.GetParty(1);
+  const router = useRouter();
   const [query, setQuery] = useState<string>('');
+  const [pendingParties, setPendingParties] = useState<getPartyRes[]>([]);
+  const [loggedParties, setLoggedParties] = useState<getPartyRes[]>([]);
   const handleChange = (value: string) => {
     setQuery(value);
-    console.log(query);
   };
   const handleSearch = () => {
-    alert('search click!');
+    router.push(`${PATH.party_list}?name=${query}`);
   };
 
-  const dummyPartyList: party[] = Array(6).fill(dummyParty);
-  const dummyPartyLogList: partyLog[] = Array(3).fill(dummyPartyLog);
+  useEffect(() => {
+    const fetchParty = async () => {
+      const pendingRes = await party.MainPendingParty(6);
+      if (pendingRes) {
+        setPendingParties(pendingRes);
+      }
+      const loggedRes = await party.MainLoggedParty(3);
+      if (loggedRes) {
+        setLoggedParties(loggedRes);
+      }
+    };
+    fetchParty();
+  }, []);
+
   return (
     <div
       style={{
@@ -82,9 +95,9 @@ export default function Party() {
           </div>
         </div>
         <div className="grid grid-cols-3 gap-6">
-          {dummyPartyList.map((party, idx) => (
-            <PartyCard key={idx} data={party} />
-          ))}
+          {pendingParties.length > 0
+            ? pendingParties.map((party, idx) => <PartyCard key={'party' + idx} data={party} />)
+            : Array.from({ length: 6 }).map((_, idx) => <PartyCardSkeleton key={idx} />)}
         </div>
       </section>
 
@@ -111,9 +124,9 @@ export default function Party() {
           subtitle="최근 플레이한 유저들의 플레이 기록을 보고 싶다면?"
         ></SectionTitle>
         <div className="grid grid-cols-3 gap-6">
-          {dummyPartyLogList.map((partyLog, idx) => (
-            <PartyLogCard key={partyLog.party_info.party_name + idx} data={partyLog} />
-          ))}
+          {loggedParties.length > 0
+            ? loggedParties.map((party, idx) => <PartyLogCard key={party.partyId + idx} data={party} />)
+            : Array.from({ length: 3 }).map((_, idx) => <PartyLogCardSkeleton key={'logged_skeleton' + idx} />)}
         </div>
       </section>
     </div>

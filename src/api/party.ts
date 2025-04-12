@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { PARTY_ENDPOINTS } from '@/constants/endpoints/party';
 import { PATH } from '@/constants/routes';
 import { useAxios } from '@/hooks/useAxios';
-import { createPartyReq, getPartiesReq, party } from '@/types/party';
+import { createPartyReq, getPartiesReq, getPartyRes, party } from '@/types/party';
 import { getSteamImage } from './steamImg';
 import { userSimple } from '@/types/user';
 import { gameSimple } from '@/types/games';
@@ -40,15 +40,11 @@ export const useParty = () => {
         selected_game: {
           title: party.gameName,
           genre: [],
-          img_src: await getSteamImage(1, 'header'),
-          background_src: await getSteamImage(1, 'background'),
-          // img_src: await getSteamImage(party.appId, 'header'),
-          // background_src: await getSteamImage(party.appId, 'background'),
+          img_src: await getSteamImage(party.appId, 'header'),
+          background_src: await getSteamImage(party.appId, 'background'),
         },
-        num_maximum: 10,
-        num_minimum: 2,
-        // num_maximum: party.maximum,
-        // num_minimum: party.minimum,
+        num_maximum: party.maximum,
+        num_minimum: party.minimum,
       };
     }
     console.log('로딩 중 문제가 발생했습니다.');
@@ -75,32 +71,13 @@ export const useParty = () => {
           pageSize: 9,
         },
       },
-      false
+      true
     );
     if (res && res.status == 200) {
       const data = res.data.data;
-      // console.log('raw data : ', data);
+      console.log('raw data : ', data);
       return {
-        parties: await Promise.all(
-          data.items.map(async (party) => {
-            return {
-              partyId: party.partyId,
-              party_name: party.name,
-              description: party.description,
-              start_time: new Date(party.partyAt),
-              tags: party.partyTags.map((tag) => tag.tagValue),
-              participation: party.members,
-              selected_game: {
-                title: party.gameName,
-                genre: [],
-                img_src: await getSteamImage(party.appId, 'header'),
-                background_src: await getSteamImage(party.appId, 'background'),
-              },
-              num_maximum: party.maximum,
-              num_minimum: party.minimum,
-            };
-          })
-        ),
+        parties: data.items,
         totalPages: data.totalPages,
         totalItems: data.totalItems,
       };
@@ -113,11 +90,22 @@ export const useParty = () => {
   }
   async function AcceptPartyJoin(partyId: string, memberId: string) {
     const res = await axios.Put(PARTY_ENDPOINTS.accept_member(partyId, memberId), {}, {}, true);
-    console.log(res);
+    console.log('game join accept', res);
+    if (res) {
+      return true;
+    } else {
+      return false;
+    }
   }
   async function RejectPartyJoin(partyId: string, memberId: string) {
     const res = await axios.Delete(PARTY_ENDPOINTS.reject_member(partyId, memberId), {}, true);
+    console.log('game Reject accept', res);
     console.log(res);
+    if (res) {
+      return true;
+    } else {
+      return false;
+    }
   }
 
   async function CreateParty(data: createPartyReq) {
@@ -160,12 +148,46 @@ export const useParty = () => {
     const res = await axios.Get(PARTY_ENDPOINTS.result(partyId), {}, false);
     console.log(res);
   }
-  async function PendingPartyJoin(partyId: string) {
+  async function GetPendingList(partyId: string) {
     const res = await axios.Get(PARTY_ENDPOINTS.pending(partyId), {}, false);
-    console.log(res);
+    if (res && res.status == 200) {
+      console.log(res.data.data.partyMembers);
+      return res.data.data.partyMembers;
+    }
+    console.log('로딩 중 문제가 발생했습니다.');
+    return null;
   }
 
   // 메인 페이지용 요청
+  async function MainPendingParty(limit: number): Promise<getPartyRes[]> {
+    const res = await axios.Get(
+      PARTY_ENDPOINTS.main_pending,
+      {
+        params: { limit: limit },
+      },
+      false
+    );
+    if (res && res.status === 200) {
+      return res.data.data.parties;
+    }
+    return [];
+  }
+
+  async function MainLoggedParty(limit: number): Promise<getPartyRes[]> {
+    const res = await axios.Get(
+      PARTY_ENDPOINTS.main_completed,
+      {
+        params: { limit: limit },
+      },
+      false
+    );
+    if (res && res.status == 200) {
+      console.log('logged party : ', res);
+      return res.data.data.parties;
+    }
+    return [];
+  }
+
   return {
     GetParty,
     GetParties,
@@ -177,6 +199,8 @@ export const useParty = () => {
     PartyJoin,
     PartyInvite,
     PartyResult,
-    PendingPartyJoin,
+    GetPendingList,
+    MainPendingParty,
+    MainLoggedParty,
   };
 };
