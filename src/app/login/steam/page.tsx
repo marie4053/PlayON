@@ -19,7 +19,7 @@ export default function LoginSteam() {
   const router = useRouter();
   const member = useMembers();
   const { toast } = useToast();
-  const { setUser } = useAuthStore();
+  const { setUser, setMemberId } = useAuthStore();
 
   const searchParams = useSearchParams();
   useEffect(() => {

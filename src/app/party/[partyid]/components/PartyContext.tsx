@@ -1,9 +1,13 @@
 import { useParty } from '@/api/party';
+import { CHAT_ENDPOINTS } from '@/constants/endpoints/chat-room';
+import { useAxios } from '@/hooks/useAxios';
 import { useAuthStore } from '@/stores/authStore';
 import { getPartyRes, party } from '@/types/party';
 import { userSimple } from '@/types/user';
+import { Client } from '@stomp/stompjs';
 import { usePathname } from 'next/navigation';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import SockJS from 'sockjs-client';
 
 type JoinStateType = 'owner' | 'joined' | 'pending' | 'notJoined';
 type PartyContextType = {
@@ -155,45 +159,189 @@ export const usePartyContext = () => {
 type ChattingContextType = {
   chatParticipantList: userSimple[];
   isJoined: boolean;
-  toggleJoinChatting: () => void;
+  toggleJoinChatting: (
+    ReceiveMessageCallback: (message: ChatMessageDTO) => void,
+    MemberChangeCallback: (members: userSimple[]) => void
+  ) => Promise<{ members: userSimple[]; messages: string[]; joinState: boolean }>;
+  sendMessage: (message: string) => void;
 };
 
 const ChattingContext = createContext<ChattingContextType | null>(null);
 
+type ChatMessageDTO = {
+  senderMemberId: number;
+  title: string;
+  nickname: string;
+  profileImg: string;
+  message: string;
+  sendAt: Date;
+};
+type ChatJoinResponse = {
+  members: { memberId: number; nickname: string; profileImg: string }[];
+  messages: string[];
+  partyId: number;
+  partyRoomId: number;
+};
 export const ChattingContextProvider = ({ children }: { children: React.ReactNode }) => {
-  // const { user: currentUser } = useAuthStore();
+  const { user: currentUser, memberId } = useAuthStore();
   // const partyAPI = useParty();
-  const { joinState } = usePartyContext();
+  const { joinState, partyInfo } = usePartyContext();
   const [chatParticipantList, setChatParticipantList] = useState<userSimple[]>([]);
   const [isJoined, setIsJoined] = useState(false);
+  const client = useRef<Client | null>(null);
+  const axios = useAxios();
 
-  const toggleJoinChatting = useCallback(() => {
-    if (isJoined) {
-      //채팅에 참가중이라면
-      if (joinState !== 'joined' && joinState !== 'owner') return; //권한 확인
-      //이곳에 채팅 참가와 관련된 함수 작성, 혹은 isJoined 값으로 컴포넌트 렌더링
-      //이곳에 함수 작성할거면 상단주석처리된 두 줄 넣기
-      setChatParticipantList([]);
-      setIsJoined(false);
-    } else {
-      //채팅에 참가중이지 않다면
-      if (joinState !== 'joined' && joinState !== 'owner') return; //권한 확인
-      //이곳에 채팅 퇴장와 관련된 함수 작성, 혹은 isJoined 값으로 컴포넌트 렌더링
-      //이곳에 함수 작성할거면 상단주석처리된 두 줄 넣기
-      setChatParticipantList([]);
-      setIsJoined(true);
-    }
-  }, [isJoined, joinState]);
-
+  const toggleJoinChatting = useCallback(
+    async (
+      ReceiveMessageCallback: (message: ChatMessageDTO) => void,
+      MemberChangeCallback: (members: userSimple[]) => void
+    ) => {
+      if (isJoined) {
+        //채팅에 참가중이라면
+        if (joinState !== 'joined' && joinState !== 'owner') return; //권한 확인
+        //이곳에 채팅 참가와 관련된 함수 작성, 혹은 isJoined 값으로 컴포넌트 렌더링
+        if (partyInfo === null || partyInfo.partyId === null) return;
+        //이곳에 함수 작성할거면 상단주석처리된 두 줄 넣기
+        const response = await axios.Delete(
+          CHAT_ENDPOINTS.leave(parseInt(partyInfo.partyId)),
+          { headers: { 'Content-Type': 'application/json' } },
+          true
+        );
+        if (response && response.status === 204) {
+          if (client.current) {
+            client.current.deactivate();
+          }
+          setChatParticipantList([]);
+          setIsJoined(false);
+          return { joinState: false };
+        }
+      } else {
+        //채팅에 참가중이지 않다면
+        if (joinState !== 'joined' && joinState !== 'owner') return; //권한 확인
+        //이곳에 채팅 퇴장와 관련된 함수 작성, 혹은 isJoined 값으로 컴포넌트 렌더링
+        if (partyInfo === null || partyInfo.partyId === null) return;
+        //이곳에 함수 작성할거면 상단주석처리된 두 줄 넣기
+        const response = await axios.Post(
+          CHAT_ENDPOINTS.join(parseInt(partyInfo.partyId)),
+          {},
+          { headers: { 'Content-Type': 'application/json' } },
+          true
+        );
+        if (response && response.status === 200) {
+          if (client.current === null) {
+            client.current = new Client({
+              webSocketFactory: () => {
+                return new SockJS('http://localhost:8080/ws');
+              },
+              connectHeaders: {
+                'Content-Type': 'application/json',
+                'X-Authorization': `Bearer ${document.cookie.includes('accessToken') ? document.cookie.split('accessToken=')[1].split(';')[0] : ''}`,
+              },
+              reconnectDelay: 5000,
+              heartbeatIncoming: 4000,
+              heartbeatOutgoing: 4000,
+            });
+            client.current.onConnect = (frame) => {
+              if (partyInfo.partyId === null) {
+                console.error('❌ ID가 없습니다. 연결을 종료합니다.');
+                return;
+              }
+              if (client.current === null) {
+                console.error('❌ Client가 없습니다. 연결을 종료합니다.');
+                return;
+              }
+              console.log('🟢 STOMP 연결됨', frame);
+              client.current.subscribe(CHAT_ENDPOINTS.subscribe_message(parseInt(partyInfo.partyId)), (message) => {
+                const chatMessage: ChatMessageDTO = JSON.parse(message.body);
+                if (chatMessage.senderMemberId === memberId) return; //자기 자신이 보낸 메시지는 무시
+                ReceiveMessageCallback(chatMessage);
+                console.log(chatMessage);
+              });
+              client.current.subscribe(CHAT_ENDPOINTS.member_update(parseInt(partyInfo.partyId)), (message) => {
+                const memberUpdate: { memberId: number; nickname: string; profileImg: string }[] = JSON.parse(
+                  message.body
+                );
+                MemberChangeCallback(
+                  memberUpdate.map((m) => ({
+                    img_src: m.profileImg,
+                    memberId: m.memberId.toString(),
+                    nickname: m.nickname,
+                    user_title: '',
+                    username: '',
+                  }))
+                );
+              });
+            };
+            client.current.onDisconnect = (frame) => {
+              console.log('🔴 STOMP 연결 해제됨', frame);
+            };
+            client.current.onStompError = (frame) => {
+              console.error('❌ STOMP 에러 발생', frame);
+            };
+          }
+          client.current.activate();
+          const typedResponse = response.data.data as ChatJoinResponse;
+          const data = {
+            members: typedResponse.members.map<userSimple>((member) => ({
+              nickname: member.nickname,
+              img_src: member.profileImg,
+              memberId: member.memberId.toString(),
+              username: '',
+              user_title: '',
+            })),
+            messages: [],
+          };
+          setChatParticipantList(data.members);
+          setIsJoined(true);
+          return { ...data, joinState: true };
+        }
+      }
+    },
+    [isJoined, joinState]
+  );
+  const sendMessage = useCallback(
+    (message: string) => {
+      if (!currentUser || !memberId) {
+        console.error('❌ 유저 정보가 없습니다. 메시지를 전송할 수 없습니다.');
+        return;
+      }
+      if (!partyInfo || partyInfo.partyId === null) {
+        console.error('❌ 파티 ID가 없습니다. 메시지를 전송할 수 없습니다.');
+        return;
+      }
+      if (client.current === null) {
+        console.error('❌ 클라이언트가 없습니다. 메시지를 전송할 수 없습니다.');
+        return;
+      }
+      const _message: ChatMessageDTO = {
+        senderMemberId: memberId,
+        nickname: currentUser.nickname,
+        profileImg: currentUser.img_src ?? '',
+        message: message,
+        sendAt: new Date(),
+        title: '',
+      };
+      try {
+        client.current.publish({
+          destination: CHAT_ENDPOINTS.subscribe_message(parseInt(partyInfo.partyId)),
+          body: JSON.stringify(_message),
+          skipContentLengthHeader: true,
+        });
+      } catch (error) {
+        console.error('❌ 메시지 전송 실패', error);
+      }
+    },
+    [currentUser, partyInfo]
+  );
   const value = useMemo(
     () => ({
       isJoined,
       chatParticipantList,
       toggleJoinChatting,
+      sendMessage,
     }),
-    [isJoined, chatParticipantList, toggleJoinChatting]
+    [isJoined, chatParticipantList, toggleJoinChatting, sendMessage]
   );
-
   return <ChattingContext.Provider value={value}>{children}</ChattingContext.Provider>;
 };
 

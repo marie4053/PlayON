@@ -9,13 +9,14 @@ import { getSteamImage } from './steamImg';
 
 export const useMembers = () => {
   const axios = useAxios();
-  const { user, setUser } = useAuthStore();
+  const { user, setUser, setMemberId } = useAuthStore();
   const { toast } = useToast();
 
   async function GetMe() {
     const response = await axios.Get(MEMBER.me, {}, false);
     if (!response) return undefined;
     const data = response.data.data;
+    setMemberId(data.memberDetail.memberId);
 
     const ret: userDetail = {
       gender: typeConverter('userGender', 'EnToKo', data.memberDetail.gender),
@@ -28,7 +29,6 @@ export const useMembers = () => {
       user_title: '',
       username: data.memberDetail.username,
     };
-    // console.log(data);
     return ret;
   }
   async function PutMe(
@@ -145,6 +145,7 @@ export const useMembers = () => {
   }
   async function logout() {
     setUser(undefined);
+    setMemberId(undefined);
     const response = await axios.Post(STEAM_AUTH_ENDPOINTS.logout, {}, {}, true);
     if (response && response.status === 204) {
       toast({ title: '로그아웃 되셨습니다', description: '내일 봐!', variant: 'primary' });
