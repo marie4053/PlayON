@@ -164,6 +164,7 @@ type ChattingContextType = {
     MemberChangeCallback: (members: userSimple[]) => void
   ) => Promise<{ members: userSimple[]; messages: string[]; joinState: boolean }>;
   sendMessage: (message: string) => void;
+  cleanUp: () => void;
 };
 
 const ChattingContext = createContext<ChattingContextType | null>(null);
@@ -299,6 +300,25 @@ export const ChattingContextProvider = ({ children }: { children: React.ReactNod
     },
     [isJoined, joinState]
   );
+  const cleanUp = useCallback(async () => {
+    if (joinState !== 'joined' && joinState !== 'owner') return; //권한 확인
+    //이곳에 채팅 참가와 관련된 함수 작성, 혹은 isJoined 값으로 컴포넌트 렌더링
+    if (partyInfo === null || partyInfo.partyId === null) return;
+    //이곳에 함수 작성할거면 상단주석처리된 두 줄 넣기
+    const response = await axios.Delete(
+      CHAT_ENDPOINTS.leave(parseInt(partyInfo.partyId)),
+      { headers: { 'Content-Type': 'application/json' } },
+      true
+    );
+    if (response && response.status === 204) {
+      if (client.current) {
+        client.current.deactivate();
+      }
+      setChatParticipantList([]);
+      setIsJoined(false);
+      return { joinState: false };
+    }
+  }, []);
   const sendMessage = useCallback(
     (message: string) => {
       if (!currentUser || !memberId) {
@@ -339,8 +359,9 @@ export const ChattingContextProvider = ({ children }: { children: React.ReactNod
       chatParticipantList,
       toggleJoinChatting,
       sendMessage,
+      cleanUp,
     }),
-    [isJoined, chatParticipantList, toggleJoinChatting, sendMessage]
+    [isJoined, chatParticipantList, toggleJoinChatting, sendMessage, cleanUp]
   );
   return <ChattingContext.Provider value={value}>{children}</ChattingContext.Provider>;
 };

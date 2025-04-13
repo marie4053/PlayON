@@ -93,6 +93,12 @@ export default function InfoChatting() {
     chatMessageBottom.current?.scrollIntoView({ behavior: 'smooth' });
   }, [displayMessages]);
 
+  useEffect(() => {
+    return () => {
+      chatContext.cleanUp();
+    };
+  }, []);
+
   return (
     <div className="border-t border-white/20 pt-8">
       <div id="participatedInfomation" className="flex justify-between items-center">
