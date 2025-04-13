@@ -7,7 +7,7 @@ interface freePost {
 }
 interface guildPost {
   channel: '길드';
-  tag: (typeof guildCommunityTags)[number];
+  tag: string;
 }
 interface postCore {
   user: userSimple;
@@ -17,6 +17,7 @@ interface postCore {
   created_at: Date;
   num_likes: number;
   comments: comment[];
+  num_comments: number;
   hits: number;
 }
 

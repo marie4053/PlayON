@@ -5,6 +5,7 @@ import { Skeleton } from '../ui/skeleton';
 import Tag from '@/components/common/Tag';
 import { PATH } from '@/constants/routes';
 import { useRouter } from 'next/navigation';
+import removeHtmlTags from '@/utils/removeHtmlTags';
 
 type CommunityPostImageLongProps = {
   data: postSimple;
@@ -34,16 +35,21 @@ export function CommunityPostImageLongSkeleton(props: { className: string }) {
 
 export default function CommunityPostImageLong(props: CommunityPostImageLongProps) {
   const router = useRouter();
+
+  const content = removeHtmlTags(props.data.content);
+  // console.log('content: ', content);
   return (
     <div
-      className={`flex gap-5 py-7 cursor-pointer ` + props.className}
+      className={`flex gap-5 py-7 cursor-pointer w-full ` + props.className}
       onClick={props.onClick ? props.onClick : () => router.push(PATH.community_detail(String(props.data.postId)))}
     >
       <img src={props.data.img_src} alt="Loading" className="object-cover h-full aspect-[1/1] rounded-xl" />
       <div className="flex flex-col justify-between w-full">
         <AvatarName userName={props.data.author_nickname} avatar={props.data.author_img} />
         <p className="text-xl font-suit font-bold">{props.data.title}</p>
-        <p className="text-base font-suit line-clamp-2 text-justify ">{props.data.content}</p>
+        <p style={{ wordBreak: 'break-all' }} className="text-base font-suit text-ellipsis line-clamp-2 w-full">
+          {content}
+        </p>
         <div className="flex justify-between">
           <div className="flex gap-1">
             <Tag background="medium" style="default" className="font-bold">
