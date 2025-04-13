@@ -43,7 +43,7 @@ export default function LoginInitial() {
   const members = useMembers();
   const router = useRouter();
   const { toast } = useToast();
-  const { setUser } = useAuthStore();
+  const { setUser, setMemberId, memberId } = useAuthStore();
 
   async function onSubmit(data: LoginSchema) {
     setPending(true);
@@ -52,9 +52,9 @@ export default function LoginInitial() {
 
     if (success) {
       const user = await members.GetMe();
-      console.log(user);
       if (user) {
         setUser(user);
+        console.log(memberId);
       }
       toast({ title: '로그인 성공!', description: '', variant: 'primary' });
       setTimeout(() => {
@@ -68,6 +68,8 @@ export default function LoginInitial() {
   }
 
   const [submitHover, setSubmitHover] = useState(false);
+
+  console.log(memberId);
 
   return (
     <div className="bg-purple-900 text-purple-400 w-full h-screen flex flex-col items-center mt-[68px]">

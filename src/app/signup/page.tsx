@@ -160,3 +160,6 @@ export default function SignupInitial() {
     </div>
   );
 }
+function setMemberId(memberId: any) {
+  throw new Error('Function not implemented.');
+}
