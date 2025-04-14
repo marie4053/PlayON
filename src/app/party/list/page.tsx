@@ -15,7 +15,7 @@ import { party } from '@/types/party';
 
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 const sortOptions: SortOption[] = [
@@ -38,7 +38,7 @@ export default function PartyList() {
 
   const [parties, setParties] = useState<party[]>([]);
   const [totalItems, setTotalItem] = useState(0);
-
+  const [isMacSupported, setIsMacSupported] = useState(false);
   const userName = user?.nickname ?? '플레이어';
 
   function splitTag(params: URLSearchParams, paramName: string, type: string): { type: string; value: string }[] {
@@ -49,7 +49,22 @@ export default function PartyList() {
     return raw.split(',').map((value) => ({ type: type, value: value }));
   }
 
+  const handleMacToggle = (checked: boolean) => {
+    const macParams = new URLSearchParams(window.location.search);
+
+    if (checked) {
+      macParams.set('isMacSupported', 'true');
+    } else {
+      macParams.delete('isMacSupported');
+    }
+
+    const newUrl = `${window.location.pathname}?${macParams.toString()}`;
+    window.history.pushState({}, '', newUrl);
+  };
+
   const fetchData = useCallback(async (params: URLSearchParams) => {
+    console.log('fecthData callback', params);
+
     const partyStyle = splitTag(params, 'partyStyle', 'PARTY_STYLE');
     const skillLevel = splitTag(params, 'skillLevel', 'GAME_SKILL');
     const gender = splitTag(params, 'gender', 'GENDER');
@@ -59,6 +74,7 @@ export default function PartyList() {
     const appId = params.get('appId');
     const orderBy = params.get('sort');
     const page = Number(params.get('page'));
+    const isMacSupported = params.get('isMacSupported');
     const partyAt = (partyDate && new Date(partyDate)) || new Date();
     const res = await party.GetParties(
       {
@@ -68,7 +84,8 @@ export default function PartyList() {
       },
       partyAt,
       page == 0 ? 1 : page,
-      orderBy ?? ''
+      orderBy ?? '',
+      isMacSupported
     );
     if (!res) return;
     setParties(res.parties);
@@ -76,8 +93,22 @@ export default function PartyList() {
   }, []);
 
   useEffect(() => {
-    fetchData(params);
-  }, [params, fetchData]);
+    if (typeof window === 'undefined') return;
+
+    const handlePopState = () => {
+      fetchData(new URLSearchParams(window.location.search));
+    };
+
+    handlePopState();
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [params]);
+
+  // useEffect(() => {
+  //   fetchData(params);
+  // }, []);
 
   return (
     <div className="relative space-y-16 mb-24">
@@ -121,7 +152,13 @@ export default function PartyList() {
         <div className="flex justify-between">
           <SortRadioGroup options={sortOptions} />
           <div className="flex items-center gap-2">
-            <Switch id="os" />
+            <Switch
+              id="os"
+              onCheckedChange={(checked) => {
+                setIsMacSupported(checked);
+                handleMacToggle(checked);
+              }}
+            />
             <Label htmlFor="os" className="text-xl text-neutral-900 font-medium">
               맥 OS 지원
             </Label>

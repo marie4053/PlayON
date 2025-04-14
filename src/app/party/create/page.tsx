@@ -11,11 +11,10 @@ import { Input } from '@/components/ui/input';
 import { FormControl, FormField, FormItem, Form } from '@/components/ui/form';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import SelectedGameCard from '@/components/game/SelectedGameCard';
-import { dummyGameSimple } from '@/utils/dummyData';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParty } from '@/api/party';
 import GameSearch from '@/components/common/GameSearch';
 import { gameSimple } from '@/types/games';
@@ -23,6 +22,11 @@ import { getSteamImage } from '@/api/steamImg';
 import { guildTags } from '@/types/Tags/guildTags';
 import { CoolerCategoryMenu } from '@/app/signup/userdata/component/cooler-category-menu';
 import TiltToggle from '@/components/common/tilt-toggle';
+import Image from 'next/image';
+import { useAlertStore } from '@/stores/alertStore';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/stores/authStore';
+import { PATH } from '@/constants/routes';
 type ToastError = {
   message: string;
   ref: { name: string };
@@ -65,10 +69,13 @@ const createPartyFormSchema = z
   });
 
 export default function PartyCreate() {
+  const { user } = useAuthStore();
   const Toast = useToast();
   const party = useParty();
+  const router = useRouter();
   const [selectedGame, setSelectedGame] = useState<gameSimple>();
   const dateInputRef = useRef<HTMLInputElement>(null);
+  const { showAlert } = useAlertStore();
 
   //필터 State
   const partyStyle = useState([true, ...new Array(guildTags.partyStyle.items.length).fill(false)]);
@@ -77,7 +84,6 @@ export default function PartyCreate() {
   const friendly = useState([true, ...new Array(guildTags.friendly.items.length).fill(false)]);
   const selectedArr = [partyStyle, skillLevel, gender, friendly];
 
-  //핸들러
   const handleSelectedGame = async (data: { appid: string; name: string }) => {
     const imgsrc = await getSteamImage(data.appid, 'header');
     const bgsrc = await getSteamImage(data.appid, 'background');
@@ -87,6 +93,12 @@ export default function PartyCreate() {
       genre: [''],
       img_src: imgsrc,
       background_src: bgsrc,
+    });
+  };
+
+  const handleCancle = () => {
+    showAlert('파티 생성을 취소하시겠습니까?', '', () => {
+      router.back();
     });
   };
   const form = useForm<z.infer<typeof createPartyFormSchema>>({
@@ -146,6 +158,20 @@ export default function PartyCreate() {
     });
   }
 
+  useEffect(() => {
+    if (user) return;
+    showAlert(
+      '로그인 후 파티를 생성할 수 있습니다.',
+      '로그인 페이지로 갈까요?',
+      () => {
+        router.push(PATH.login);
+      },
+      () => {
+        router.back();
+      }
+    );
+  }, []);
+
   return (
     <div className="pt-28 mb-32">
       <Form {...form}>
@@ -157,8 +183,18 @@ export default function PartyCreate() {
         >
           <div className="flex justify-center gap-6">
             <div className="min-w-[411px] flex flex-col items-end">
-              <div className="w-full h-[180px] rounded-2xl border border-neutral-300">
-                {selectedGame && <SelectedGameCard data={selectedGame} />}
+              <div className="w-full h-[180px] rounded-2xl overflow-hidden border border-neutral-300">
+                {selectedGame ? (
+                  <SelectedGameCard data={selectedGame} />
+                ) : (
+                  <Image
+                    src="/img/dummy_header.jpg"
+                    alt="더미 게임 이미지"
+                    width={410}
+                    height={180}
+                    className="aspect-[410/180] max-w-[410px]"
+                  ></Image>
+                )}
               </div>
               <div className="flex items-center gap-2 mt-[25px]">
                 <FormField //공개설정
@@ -342,7 +378,11 @@ export default function PartyCreate() {
                 />
               </div>
               <div className="flex justify-end mt-11 gap-3">
-                <button className="bg-neutral-400 text-white rounded-full w-32 mt-2 h-12 hover:bg-neutral-600 transition-colors">
+                <button
+                  type="button"
+                  onClick={handleCancle}
+                  className="bg-neutral-400 text-white rounded-full w-32 mt-2 h-12 hover:bg-neutral-600 transition-colors"
+                >
                   취소
                 </button>
                 <button type="submit">
