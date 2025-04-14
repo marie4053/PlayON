@@ -4,20 +4,166 @@ import RetroButton from '@/components/common/RetroButton';
 import Tag from '@/components/common/Tag';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Doughnut } from 'react-chartjs-2';
-import { dummyGameDetail, dummyParty, dummyPartyLog } from '@/utils/dummyData';
+import { dummyGameDetail } from '@/utils/dummyData';
 import { ArcElement, Chart, ChartData } from 'chart.js';
 import { SwiperSlide, Swiper } from 'swiper/react';
 import PartyCard from '@/components/party/PartyCard';
 import 'swiper/css';
 import PartyLogCard from '@/components/party/PartyLogCard';
 import { PlayIcon } from 'lucide-react';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSuspenseQuery } from '@tanstack/react-query';
+import { game, useGame, party as ServerParty, partyLog as ServerPartyLog } from '@/api/game';
+import { GAME_ROUTE } from '@/constants/routes/game';
+import { useRouter } from 'next/navigation';
+import { gameDetail } from '@/types/games';
+import { getPartyRes } from '@/types/party';
+import Link from 'next/link';
+import { PARTY_ROUTE } from '@/constants/routes/party';
 
-export default function GameDetail() {
+export default function GameDetail({ params }: { params: { gameid: string } }) {
   const [selectedSlide, setSelectedSlide] = useState(0);
-
   Chart.register(ArcElement);
+  const router = useRouter();
+  const gamehook = useGame();
+  const partyResFallback: getPartyRes[] = [
+    {
+      appId: 730,
+      description: '',
+      gameName: 'Counter Strike 2',
+      maximum: 10,
+      members: [
+        { img_src: '/img/dummy_profile.jpg', memberId: '0', nickname: '이름', user_title: '', username: '유저네임' },
+      ],
+      minimum: 2,
+      name: '파티이름',
+      partyAt: new Date(),
+      partyId: 0,
+      partyTags: [{ tagValue: '파티태그' }, { tagValue: '파티태그' }],
+      total: 0,
+    },
+    {
+      appId: 730,
+      description: '',
+      gameName: 'Counter Strike 2',
+      maximum: 10,
+      members: [
+        { img_src: '/img/dummy_profile.jpg', memberId: '0', nickname: '이름', user_title: '', username: '유저네임' },
+      ],
+      minimum: 2,
+      name: '파티이름',
+      partyAt: new Date(),
+      partyId: 0,
+      partyTags: [{ tagValue: '파티태그' }, { tagValue: '파티태그' }],
+      total: 0,
+    },
+    {
+      appId: 730,
+      description: '',
+      gameName: 'Counter Strike 2',
+      maximum: 10,
+      members: [
+        { img_src: '/img/dummy_profile.jpg', memberId: '0', nickname: '이름', user_title: '', username: '유저네임' },
+      ],
+      minimum: 2,
+      name: '파티이름',
+      partyAt: new Date(),
+      partyId: 0,
+      partyTags: [{ tagValue: '파티태그' }, { tagValue: '파티태그' }],
+      total: 0,
+    },
+  ];
 
+  function convertToClientGame(data: game): gameDetail {
+    return {
+      about: data.aboutTheGame,
+      detail_desc: data.aboutTheGame,
+      developer: [data.developers],
+      genre: data.genres,
+      homepage_url: data.website,
+      img_src: data.headerImage,
+      movie_src: data.movies,
+      screenshot_src: data.screenshots,
+      os: {
+        linux: data.isLinuxSupported,
+        mac: data.isMacSupported,
+        windows: data.isWindowsSupported,
+      },
+      publisher: [data.publishers],
+      release_date: new Date(data.releaseDate),
+      short_desc: data.shortDescription,
+      title: data.name,
+    };
+  }
+  function convertToClientParty(data: ServerParty, appId: number): getPartyRes {
+    return {
+      appId: appId,
+      description: data.description,
+      gameName: data.gameName,
+      maximum: data.maximum,
+      members: data.members.map((e) => ({
+        img_src: e.profileImage,
+        memberId: e.memberId.toString(),
+        nickname: '',
+        user_title: '',
+        username: '',
+      })),
+      minimum: data.minimum,
+      name: data.name,
+      partyAt: data.partyAt,
+      partyId: data.partyId,
+      partyTags: data.partyTags.map((e) => ({ tagValue: e.tagValue })),
+      total: 0,
+    };
+  }
+  function convertToClientPartyLog(data: ServerPartyLog, appId: number): getPartyRes {
+    return {
+      appId: appId,
+      description: '',
+      gameName: data.gameName,
+      maximum: 10,
+      members: data.partyMembers.map((e) => ({
+        img_src: e.profileImg,
+        memberId: e.memberId.toString(),
+        nickname: e.nickname,
+        user_title: e.title,
+        username: e.username,
+      })),
+      minimum: 2,
+      name: data.name,
+      partyAt: data.partyAt,
+      partyId: data.partyId,
+      partyTags: data.partyTags.map((e) => ({ tagValue: e.tagValue })),
+      total: data.partyMembers.length,
+    };
+  }
+
+  const { data: gameDetails } = useSuspenseQuery({
+    queryKey: ['gameDetail', params.gameid],
+    queryFn: async () => {
+      const gameId = parseInt(params.gameid);
+      if (isNaN(gameId)) {
+        router.push(GAME_ROUTE.game_list);
+      }
+      const data = await gamehook.GameDetailWithPartyLog(gameId);
+      const convGame = convertToClientGame(data.game);
+      const convParties = data.partyList.map((_) => convertToClientParty(_, data.game.appid));
+      const convPartyLogs = data.partyLogList.map((_) => convertToClientPartyLog(_, data.game.appid));
+
+      if (data) {
+        return {
+          game: convGame,
+          partyLogs: convPartyLogs,
+          parties: convParties,
+        };
+      }
+      return {
+        game: dummyGameDetail,
+        parties: partyResFallback,
+        partyLogs: partyResFallback,
+      };
+    },
+  });
   const dummyReviewData = {
     query_summary: {
       num_reviews: 3,
@@ -91,16 +237,16 @@ export default function GameDetail() {
       },
     ],
   };
-  const dummyParties = [dummyParty, dummyParty, dummyParty, dummyParty, dummyParty, dummyParty];
-  const dummyPartyLogs = [dummyPartyLog, dummyPartyLog, dummyPartyLog, dummyPartyLog, dummyPartyLog, dummyPartyLog];
 
   type slide = {
     contentType: 'movie' | 'screenshot';
     contentUrl: string;
   };
   const slideArray: slide[] = [
-    ...dummyGameDetail.movie_src.map<slide>((_) => ({ contentType: 'movie', contentUrl: _ })),
-    ...dummyGameDetail.screenshot_src.map<slide>((_) => ({ contentType: 'screenshot', contentUrl: _ })),
+    ...(gameDetails ? gameDetails.game.movie_src.map<slide>((_) => ({ contentType: 'movie', contentUrl: _ })) : []),
+    ...(gameDetails
+      ? gameDetails.game.screenshot_src.map<slide>((_) => ({ contentType: 'screenshot', contentUrl: _ }))
+      : []),
   ];
   const SelectedSlideBuilder = (props: { ind: number }) => {
     const selectedSlideData = slideArray[props.ind];
@@ -123,46 +269,50 @@ export default function GameDetail() {
       <div className="flex w-[67%] min-w-[1280px] self-center gap-6">
         <div className="flex flex-col gap-7 w-[33%] min-w-[411px]">
           <div className=" w-[411px] overflow-hidden rounded-xl ">
-            <img src={dummyGameDetail.img_src} alt="" className="" />
+            <img src={gameDetails.game.img_src} alt="" className="" />
           </div>
           <div className="flex flex-col gap-3">
-            <p className="text-4xl text-neutral-900 font-extrabold">{dummyGameDetail.title}</p>
+            <p className="text-4xl text-neutral-900 font-extrabold">{gameDetails.game.title}</p>
             <div className="flex gap-2">
-              {dummyGameDetail.genre.map((e, ind) => {
-                return (
-                  <Tag background="dark" style="retro" size="small" key={ind}>
-                    {e}
-                  </Tag>
-                );
-              })}
+              <Suspense fallback={<div className="w-20 h-6 bg-neutral-300 animate-pulse rounded"></div>}>
+                {gameDetails?.game.genre.map((e, ind) => {
+                  return (
+                    <Tag background="dark" style="retro" size="small" key={ind}>
+                      {e}
+                    </Tag>
+                  );
+                })}
+              </Suspense>
             </div>
           </div>
-          <p className="font-medium">{dummyGameDetail.short_desc}</p>
+          <p className="font-medium">{gameDetails.game.short_desc}</p>
           <div className="flex flex-col gap-4">
             <div className="flex">
               <p className="w-20">출시일</p>
-              <p>{dummyGameDetail.release_date.toLocaleDateString()}</p>
+              <p>{gameDetails.game.release_date.toLocaleDateString()}</p>
             </div>
             <div className="flex">
               <p className="w-20">개발</p>
-              <p>{dummyGameDetail.developer}</p>
+              <p>{gameDetails.game.developer}</p>
             </div>
             <div className="flex">
               <p className="w-20">발행</p>
-              <p>{dummyGameDetail.publisher}</p>
+              <p>{gameDetails.game.publisher}</p>
             </div>
             <div className="flex">
               <p className="w-20">홈페이지</p>
-              <p>{dummyGameDetail.homepage_url}</p>
+              <p>{gameDetails.game.homepage_url}</p>
             </div>
             <div className="flex">
               <p className="w-20">OS</p>
-              <p>{dummyGameDetail.os.linux ? 'linux' : ''}</p>
-              <p>{dummyGameDetail.os.windows ? 'windows' : ''}</p>
-              <p>{dummyGameDetail.os.mac ? 'mac' : ''}</p>
+              <p>{gameDetails.game.os.linux ? 'linux' : ''}</p>
+              <p>{gameDetails.game.os.windows ? ', windows' : ''}</p>
+              <p>{gameDetails.game.os.mac ? ', mac' : ''}</p>
             </div>
           </div>
-          <RetroButton type="purple">파티 생성</RetroButton>
+          <Link href={PARTY_ROUTE.party_create}>
+            <RetroButton type="purple">파티 생성</RetroButton>
+          </Link>
         </div>
         <div className="flex flex-col w-[67%] gap-2">
           <div className="w-full aspect-video">
@@ -175,7 +325,7 @@ export default function GameDetail() {
                   {_.contentType === 'screenshot' && <img src={_.contentUrl} alt="" className="" />}
                   {_.contentType === 'movie' && (
                     <div className="h-full overflow-hidden">
-                      <img src={dummyGameDetail.img_src} alt="" className="h-full object-cover" />
+                      <img src={gameDetails?.game.img_src} alt="" className="h-full object-cover" />
                       <div
                         className="absolute top-[50%] left-[50%] rounded-full bg-[#00000080] p-2 flex items-center justify-center"
                         style={{ translate: '-50% -50%' }}
@@ -197,13 +347,17 @@ export default function GameDetail() {
               <AccordionTrigger>
                 <p className="text-xl font-bold">이 게임에 대해서</p>
               </AccordionTrigger>
-              <AccordionContent>{dummyGameDetail.about}</AccordionContent>
+              <AccordionContent>
+                <div dangerouslySetInnerHTML={{ __html: gameDetails ? gameDetails.game.about : '' }}></div>
+              </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-2">
               <AccordionTrigger>
                 <p className="text-xl font-bold">상세 정보</p>
               </AccordionTrigger>
-              <AccordionContent>{dummyGameDetail.detail_desc}</AccordionContent>
+              <AccordionContent>
+                <div dangerouslySetInnerHTML={{ __html: gameDetails ? gameDetails.game.detail_desc : '' }}></div>
+              </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-3">
               <AccordionTrigger>
@@ -216,12 +370,14 @@ export default function GameDetail() {
                     <p className="text-xl font-semibold">{dummyReviewData.query_summary.review_score_desc}</p>
                     <p className="font-bold mt-6">최근 평가</p>
                     <div className="flex gap-6 mt-2">
-                      <div className="w-[50%] text-ellipsis overflow-hidden border border-neutral-300 line-clamp-3 p-2 rounded">
-                        {dummyReviewData.reviews[0].review}
-                      </div>
-                      <div className="w-[50%] text-ellipsis overflow-hidden border border-neutral-300 line-clamp-3 p-2 rounded">
-                        {dummyReviewData.reviews[1].review}
-                      </div>
+                      <div
+                        className="w-[50%] text-ellipsis overflow-hidden border border-neutral-300 p-2 rounded"
+                        dangerouslySetInnerHTML={{ __html: dummyReviewData.reviews[1].review }}
+                      ></div>
+                      <div
+                        className="w-[50%] text-ellipsis overflow-hidden border border-neutral-300 p-2 rounded"
+                        dangerouslySetInnerHTML={{ __html: dummyReviewData.reviews[1].review }}
+                      ></div>
                     </div>
                   </div>
                   <div className="w-[160px] h-[160px] flex flex-shrink-0 relative">
@@ -246,9 +402,9 @@ export default function GameDetail() {
           </AccordionTrigger>
           <AccordionContent>
             <Swiper spaceBetween={10} slidesPerView={3} direction="horizontal">
-              {dummyParties.map((_, ind) => (
+              {gameDetails.parties?.map((_, ind) => (
                 <SwiperSlide key={ind} className="w-[410px]">
-                  <PartyCard data={dummyParty} />
+                  <PartyCard data={_} />
                 </SwiperSlide>
               ))}
             </Swiper>
@@ -260,9 +416,11 @@ export default function GameDetail() {
           </AccordionTrigger>
           <AccordionContent>
             <Swiper spaceBetween={10} slidesPerView={3} direction="horizontal">
-              {dummyPartyLogs.map((_, ind) => (
+              {gameDetails.partyLogs?.map((_, ind) => (
                 <SwiperSlide key={ind} className="w-[410px]">
-                  <PartyLogCard data={_} />
+                  <Link href={PARTY_ROUTE.party_log(_.partyId)}>
+                    <PartyLogCard data={_} />
+                  </Link>
                 </SwiperSlide>
               ))}
             </Swiper>
