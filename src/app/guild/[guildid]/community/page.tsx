@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useGuild } from '@/api/guild';
 import GhostSVG from '@/components/svg/ghost_fill';
 import { PATH } from '@/constants/routes';
+import EmptyLottie from '@/components/common/EmptyLottie';
 
 const sortOptions: SortOption[] = [
   { id: 'LATEST', label: '최신순' },
@@ -52,7 +53,7 @@ export default function GuildCommunity() {
       const keyword = searchParams.get('search');
       const page = searchParams.get('page');
       const pageSize = 10;
-      const sort = searchParams.get('sort');
+      const sort = searchParams.get('sort') || 'LATEST';
 
       if (tag && tag !== '전체') Object.assign(data, { tag: convertTag(tag) });
       if (keyword) Object.assign(data, { keyword });
@@ -87,7 +88,7 @@ export default function GuildCommunity() {
           </button>
         )}
         {totalItems > 0 && (
-          <section className="w-full space-y-10 pt-8">
+          <section className="w-full space-y-4 pt-16">
             <SortRadioGroup options={sortOptions} />
             <div className="w-full divide-y divide-neutral-200">
               {postList.map((post) => {
@@ -116,9 +117,8 @@ export default function GuildCommunity() {
           </section>
         )}
         {guildData && totalItems <= 0 && (
-          <div className="flex self-start pt-20 gap-4">
-            <GhostSVG width={32} fill="#9884F0" stroke="" />
-            <p className="font-dgm text-2xl text-neutral-800">게시글이 없습니다.</p>
+          <div className="w-full text-center justify-self-center place-self-center pt-16">
+            <EmptyLottie className="w-[360px]" text="해당하는 게시글이 없어요"></EmptyLottie>
           </div>
         )}
       </section>
