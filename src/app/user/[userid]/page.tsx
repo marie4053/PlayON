@@ -6,47 +6,22 @@ import PartyCard from '@/components/party/PartyCard';
 import PartyLogCard from '@/components/party/PartyLogCard';
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { Carousel, CarouselApi, CarouselContent, CarouselItem } from '@/components/ui/carousel';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
 import { gameSimple } from '@/types/games';
 import { guild } from '@/types/guild';
-import { getPartyRes, party, partyLog } from '@/types/party';
-import {
-  dummyGameSimple,
-  dummyGuild,
-  dummyParty,
-  dummyPartyLog,
-  dummyUserDetail,
-  dummyUserSimple,
-} from '@/utils/dummyData';
-import { ChevronLeft, ChevronRight, MailIcon, Pencil, SquarePen } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { getPartyRes } from '@/types/party';
+import { dummyGameSimple } from '@/utils/dummyData';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import SteamSVG from '@/components/svg/steam';
 import Tag from '@/components/common/Tag';
 import { useMembers } from '@/api/members';
 import { userDetail } from '@/types/user';
-import { useParams, useRouter } from 'next/navigation';
-import { useAuthStore } from '@/stores/authStore';
-import Link from 'next/link';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import EmptyLottie from '@/components/common/EmptyLottie';
+import RetroButton from '@/components/common/RetroButton';
+import { PATH } from '@/constants/routes';
+import CustomPagination from '@/components/common/CustomPagination';
 
-interface userMe {
-  gerder: string;
-  img_src?: string;
-  last_login_at: Date; // Mon Apr 14 2025 09:45:15 GMT+0900 (한국 표준시) {}
-  nickname: string;
-  party_style: string[];
-  skill_level: string;
-  steam_id?: number;
-  user_title?: string[];
-  username: string;
-}
 
 
 export default function UserInfoPage() {
@@ -56,7 +31,6 @@ export default function UserInfoPage() {
 
   const memberApi = useMembers();
   const [userMe, SetUserMe] = useState<userDetail | null>(null);
-  // const [myGames, setMyGames] = useState<resGameProps[] | null>([]);
   const [myGuilds, setMyGuilds] = useState<guild[] | null>([]);
   const [myParties, setMyParties] = useState<getPartyRes[] | null>([]);
   const [myPartyLogs, setMyPartyLogs] = useState<getPartyRes[] | null>([]);
@@ -65,7 +39,12 @@ export default function UserInfoPage() {
   const userid = Number(params?.userid) as number;
 
   console.log('targetUserid', userid);
+  const [currentPage, setCurrentPage] = useState(1);
 
+  const searchParams = useSearchParams();
+
+  const PAGE_SIZE = 6;
+  const totalItems = myPartyLogs?.length;
 
   useEffect(() => {
     const GetMe = async () => {
@@ -79,7 +58,6 @@ export default function UserInfoPage() {
       }
     };
     GetMe();
-
 
     const MyGuilds = async () => {
       try {
@@ -117,16 +95,28 @@ export default function UserInfoPage() {
     };
     GetMyPartyLogs();
   }, []);
+  useEffect(() => {
+    const pageParam = searchParams.get('page');
+    if (pageParam) {
+      const pageNum = parseInt(pageParam);
+      setCurrentPage(isNaN(pageNum) ? 1 : pageNum);
+    }
+  }, [searchParams]);
 
+  const paginatedLogs = useMemo(() => {
+    const startIdx = (currentPage - 1) * PAGE_SIZE;
+    //   return dummyPartyLogList?.slice(startIdx, startIdx + PAGE_SIZE);
+    // }, [dummyPartyLogList, currentPage]);
+    return myPartyLogs?.slice(startIdx, startIdx + PAGE_SIZE);
+  }, [myPartyLogs, currentPage]);
   // if (!userMe) return <div className="text-center pt-28">로딩 중...</div>;
 
   // const defauiltAvatar = '/img/_defilmmopruy.jpg';
   const defauiltAvatar = '/img/dummy_profile.jpg';
 
   const router = useRouter();
-  const member = useMembers();
-  const { setUser } = useAuthStore();
-
+  // const member = useMembers();
+  // const { setUser } = useAuthStore();
 
   return (
     <main>
@@ -255,6 +245,21 @@ export default function UserInfoPage() {
                 </button>
               </div>
             </div>
+            {myGuilds?.length === 0 && (
+              <div className="text-center">
+                <EmptyLottie className="w-[280px] mt-6" noText={true}>
+                  <RetroButton
+                    type="purple"
+                    className="mt-4"
+                    callback={() => {
+                      router.push(PATH.guild_list);
+                    }}
+                  >
+                    길드 가입 하러 가기!
+                  </RetroButton>
+                </EmptyLottie>
+              </div>
+            )}
           </div>
 
           {/* 내가 보유한 게임 목록 */}
@@ -274,43 +279,60 @@ export default function UserInfoPage() {
             <div className="flex">
               <div className="grid grid-cols-3 gap-6">
                 {myParties?.map((party) => <PartyCard key={party.partyId} data={party} />)}
-                {/* {dummyPartyList?.map((party) => <PartyCard key={party.partyId} data={party} />)} */}
               </div>
             </div>
+            {myParties?.length === 0 && (
+              <div className="text-center">
+                <EmptyLottie className="w-[280px] mt-6" noText={true}>
+                  <RetroButton
+                    type="purple"
+                    className="mt-4"
+                    callback={() => {
+                      router.push(PATH.party_list);
+                    }}
+                  >
+                    파티 하러 가기!
+                  </RetroButton>
+                </EmptyLottie>
+              </div>
+            )}
           </div>
 
           {/* 참여한 파티 로그 */}
           <div className="flex flex-col gap-6">
             <p className="font-suit text-3xl font-semibold">참여한 파티 로그</p>
-            <div className="grid grid-cols-3 gap-6">
-              {myPartyLogs?.map((partyLog) => <PartyLogCard key={partyLog.partyId} data={partyLog} />)}
-              {/* {dummyPartyLogList.map((partyLog) => (
-                <PartyLogCard key={partyLog.party_info.party_name} data={partyLog} />
-              ))} */}
-            </div>
-          </div>
 
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious href="#" className="text-base" />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#" isActive>
-                  1
-                </PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationLink href="#">2</PaginationLink>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationEllipsis />
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext href="#" className="text-base" />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+            <div className="grid grid-cols-3 gap-6">
+              {paginatedLogs?.map((partyLog) => <PartyLogCard key={partyLog.partyId} data={partyLog} />)}
+
+              {/* {paginatedLogs?.map((partyLog) => (
+                            <PartyLogCard key={partyLog.party_info.party_name} data={partyLog} />
+                          ))} */}
+            </div>
+
+            {myPartyLogs?.length === 0 && (
+              <div className="text-center">
+                <EmptyLottie className="w-[280px] mt-6" noText={true}>
+                  <RetroButton
+                    type="purple"
+                    className="mt-4"
+                    callback={() => {
+                      router.push(PATH.party_list);
+                    }}
+                  >
+                    파티 하러 가기!
+                  </RetroButton>
+                </EmptyLottie>
+              </div>
+            )}
+
+            {myPartyLogs?.length !== 0 && (
+              // {/* {totalItems > PAGE_SIZE && ( */}
+              <div className="mt-10">
+                <CustomPagination totalItems={totalItems} pageSize={PAGE_SIZE} />
+              </div>
+            )}
+          </div>
         </div>
       </section>
     </main>
