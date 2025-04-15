@@ -19,10 +19,10 @@ import { useMembers } from '@/api/members';
 import GhostSVG from '@/components/svg/ghost_fill';
 import { PATH } from '@/constants/routes';
 import NotificationItem from './notification-item';
-import { Notification, useNotification } from '@/api/notification';
-import { useEffect, useState } from 'react';
+import { useNotification } from '@/api/notification';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type Props = {
   userInfo: userDetail;
@@ -40,24 +40,38 @@ export default function UserInfoLogin({ userInfo }: Props) {
     // router.refresh();
   };
 
-  const [getNoti, setGetNoti] = useState(false);
+  const [opened, setOpened] = useState(false);
   const notification = useNotification();
-  const { data: notifications, isFetched } = useQuery({
+  const {
+    data: notifications,
+    isFetched,
+    refetch,
+  } = useQuery({
     queryKey: ['Notifications'],
     queryFn: async () => {
-      setGetNoti(false);
-      return await notification.GetNotifications();
+      const temp = await notification.GetNotificationsSummary();
+      return temp;
     },
-    enabled: getNoti,
-    staleTime: 1000 * 60 * 5,
-    select: (e) => {
-      return e.slice(0, 5);
-    },
+    staleTime: 1,
   });
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild className="cursor-pointer" onClick={() => setGetNoti(true)}>
+      <DropdownMenuTrigger
+        asChild
+        className="cursor-pointer"
+        onClick={async () => {
+          if (opened) {
+            const response = await refetch();
+            if (response && response.status === 'success') {
+              response.data.notification.forEach((e) => {
+                if (!e.isRead) notification.ReadNotification(e.id);
+              });
+            }
+          }
+          setOpened(!opened);
+        }}
+      >
         <div className="flex items-center gap-3">
           <div className="text-right">
             <p className="text-neutral-500 text-xs">{userInfo.user_title}</p>
@@ -90,9 +104,14 @@ export default function UserInfoLogin({ userInfo }: Props) {
             {/* <p className="text-sm">
               알림이 생긴다면 이쪽에 렌더링하면 됩니다... flex로 왼쪽은 알림 내용 오른쪽은 확인 버튼이나 지우기
             </p> */}
-            {isFetched &&
-              notifications &&
-              notifications.map((e) => <NotificationItem data={e} key={`noti_${e.id}_${e.createdAt}`} />)}
+            <ScrollArea className="w-full">
+              {isFetched &&
+                notifications &&
+                notifications.notification.length > 0 &&
+                notifications.notification.map((e) => (
+                  <NotificationItem data={e} key={`noti_${e.id}_${e.createdAt}`} />
+                ))}
+            </ScrollArea>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
