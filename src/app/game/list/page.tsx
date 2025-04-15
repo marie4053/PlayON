@@ -7,14 +7,13 @@ import { dummyGameDetail2 } from '@/utils/dummyData';
 import PickCard from '@/components/game/PickCard';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useGame, game } from '@/api/game';
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import typeConverter from '@/utils/typeConverter';
 import { CoolerCategoryMenu } from '@/app/signup/userdata/component/cooler-category-menu';
 import TiltToggle from '@/components/common/tilt-toggle';
 import { gameDetail } from '@/types/games';
 import CustomPagination from '@/components/common/CustomPagination';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { GAME_ROUTE } from '@/constants/routes/game';
 import { Skeleton } from '@/components/ui/skeleton';
 import GameSearch from '@/components/common/GameSearch';
@@ -73,7 +72,6 @@ export default function GameList() {
     queryFn: async () => {
       const playerTypeInd = playerType.findIndex((e) => e === true);
       const releaseStatusInd = releaseStatus.findIndex((e) => e === true);
-
       const data = await game.GameSearch(
         {
           keyword: keyword.length > 0 ? keyword : undefined,
@@ -108,19 +106,19 @@ export default function GameList() {
       }
       return dummyGames;
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1,
   });
 
   const { toast } = useToast();
   const router = useRouter();
 
-  useEffect(() => {
-    const Genre = searchParams.get('genre')?.split(',');
-    const PlayerType = searchParams.get('playerType');
-    const ReleaseStatus = searchParams.get('releaseStatus');
-    const Mac = searchParams.get('mac');
-    const Keyword = searchParams.get('name');
-    const ReleaseDate = searchParams.get('releaseDate');
+  const fetchData = useCallback(async (params: URLSearchParams) => {
+    const Genre = params.get('genre')?.split(',');
+    const PlayerType = params.get('playerType');
+    const ReleaseStatus = params.get('releaseStatus');
+    const Mac = params.get('mac');
+    const Keyword = params.get('name');
+    const ReleaseDate = params.get('releaseDate');
 
     if (Genre) {
       setGenre([false, ...genres.map((e) => Genre.includes(e))]);
@@ -131,6 +129,7 @@ export default function GameList() {
     if (Mac) setMac(Mac === 'true' ? true : false);
     if (Keyword) setKeyword(Keyword);
     if (ReleaseDate) setReleaseDate(new Date(ReleaseDate));
+    refetch();
   }, []);
   useEffect(() => {
     const newUrl = new URL(window.location.href);
@@ -176,8 +175,8 @@ export default function GameList() {
     window.history.pushState({}, '', newUrl);
   }, [genre, playerType, releaseStatus, mac, releaseDate, keyword, playerTypes, releaseStatuses, genres]);
   useEffect(() => {
-    refetch();
-  }, [refetch, genre, playerType, releaseStatus, mac, releaseDate, keyword]);
+    fetchData(searchParams);
+  }, [fetchData, searchParams]);
 
   const ImFeelingLucky = async () => {
     try {
@@ -275,9 +274,7 @@ export default function GameList() {
         {isFetched && data.length > 0 && (
           <div className="lg:w-[1280px] grid grid-cols-4 grid-rows-3 gap-x-6 gap-y-12 mt-[100px]">
             {data.map((e, ind) => (
-              <Link href={GAME_ROUTE.game_detail(e.appid)} key={ind}>
-                <PickCard data={e} />
-              </Link>
+              <PickCard data={e} key={ind} appid={e.appid} />
             ))}
           </div>
         )}
