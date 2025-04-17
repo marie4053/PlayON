@@ -14,6 +14,8 @@ const Lottie = dynamic(() => import('react-lottie-player'), {
 
 import { PATH } from '@/constants/routes';
 import { useMembers } from '@/api/members';
+import { Skeleton } from '@/components/ui/skeleton';
+import GhostSVG from '@/components/svg/ghost_fill';
 const linkStyle = `
     relative
     transition-all
@@ -36,7 +38,7 @@ const linkStyle = `
     `;
 
 export default function Header() {
-  const { user, setUser } = useAuthStore();
+  const { user, setUser, hasHydrated } = useAuthStore();
   const [isLogin, setisLogin] = useState(false);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -97,8 +99,13 @@ export default function Header() {
             커뮤니티
           </Link>
         </div>
-        {user && <UserInfoLogin userInfo={user} />}
-        {!user && <UserInfoLogout />}
+        {hasHydrated && user && <UserInfoLogin userInfo={user} />}
+        {!hasHydrated && (
+          <div className="animate-bounce duration-1000 mt-2 ">
+            <GhostSVG fill="#FFFFFF" stroke="" width={20} />
+          </div>
+        )}
+        {hasHydrated && !user && <UserInfoLogout />}
       </div>
     </header>
   );
