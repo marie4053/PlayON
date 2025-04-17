@@ -23,6 +23,7 @@ type PartyContextType = {
 };
 
 const PartyContext = createContext<PartyContextType | null>(null);
+const WEBSOCKET_URL = process.env.NEXT_PUBLIC_WEBSOCKET_BASE_URL ?? '';
 
 export const PartyContextProvider = ({ children }: { children: React.ReactNode }) => {
   const { user: currentUser, memberId: currentUserId } = useAuthStore();
@@ -254,7 +255,7 @@ export const ChattingContextProvider = ({ children }: { children: React.ReactNod
           if (client.current === null) {
             client.current = new Client({
               webSocketFactory: () => {
-                return new SockJS(WEBSOCKET_URL ?? '');
+                return new SockJS(WEBSOCKET_URL);
               },
               connectHeaders: {
                 'Content-Type': 'application/json',
