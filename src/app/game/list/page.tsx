@@ -94,7 +94,7 @@ export default async function GameList({
           <div className="flex gap-8 mt-4 items-center">
             <div className="flex flex-col gap-2">
               <p className="font-bold">{`출시일 (선택일 이후)`}</p>
-              <CustomDateTimePicker init={formatDateStr(releaseDateStr)} />
+              <CustomDateTimePicker init={releaseDateStr ? formatDateStr(releaseDateStr) : undefined} />
             </div>
             <div className="flex flex-col gap-2">
               <p className="font-bold">{`출시 상태`}</p>
