@@ -1,4 +1,3 @@
-import formatDate from '@/utils/formatDate';
 import { create } from 'zustand';
 
 const genres = ['액션', '인디', '어드벤처', '시뮬레이션', 'RPG', '전략', '캐주얼'] as const;
@@ -103,7 +102,6 @@ export const gameSearchStore = create<GameSearchState>((set, get) => ({
       allUndefined = false;
       retStr += `releaseDate=${releaseDate}&`;
     }
-
     if (releaseStatus.filter((_) => _).length > 0) {
       allUndefined = false;
       const joinedStr = releaseStatus

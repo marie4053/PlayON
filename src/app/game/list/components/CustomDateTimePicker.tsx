@@ -13,7 +13,7 @@ import { gameSearchStore } from '../stores/gameSearchStore';
 import { useRouter } from 'next/navigation';
 import { GAME_ROUTE } from '@/constants/routes/game';
 
-export function CustomDateTimePicker(props: { init: Date | undefined }) {
+export function CustomDateTimePicker(props: { init: string | undefined }) {
   const [date, setDate] = React.useState<Date>();
   const [isOpen, setIsOpen] = React.useState(false);
   const { setReleaseDate, getQuery } = gameSearchStore();
@@ -22,7 +22,9 @@ export function CustomDateTimePicker(props: { init: Date | undefined }) {
   const hours = Array.from({ length: 12 }, (_, i) => i + 1);
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
-      setDate(selectedDate);
+      console.log(selectedDate);
+      setReleaseDate(selectedDate);
+      router.push(GAME_ROUTE.game_list + getQuery(), { scroll: false });
     }
   };
   const handleTimeChange = (type: 'hour' | 'minute' | 'ampm', value: string) => {
@@ -36,18 +38,19 @@ export function CustomDateTimePicker(props: { init: Date | undefined }) {
         const currentHours = newDate.getHours();
         newDate.setHours(value === 'PM' ? currentHours + 12 : currentHours - 12);
       }
-      setDate(newDate);
+      console.log(newDate);
+      setReleaseDate(newDate);
+      router.push(GAME_ROUTE.game_list + getQuery(), { scroll: false });
     }
   };
-
   React.useEffect(() => {
-    setDate(props.init);
+    if (props.init) {
+      const newDate = new Date(props.init);
+      setDate(newDate);
+    } else {
+      setDate(undefined);
+    }
   }, [props.init]);
-  React.useEffect(() => {
-    // props.onSelect(date);
-    setReleaseDate(date);
-    router.push(GAME_ROUTE.game_list + getQuery(), { scroll: false });
-  }, [date]);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>

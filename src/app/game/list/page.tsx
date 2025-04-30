@@ -36,7 +36,6 @@ export default async function GameList({
   const _playerType = playerType ? playerType.split(',') : [];
   const _releaseStatus = releaseStatus ? releaseStatus.split(',') : [];
   const _genre = genre ? genre.split(',') : [];
-
   const page = ((await searchParams).page as string) ?? undefined;
 
   const step = {
@@ -61,6 +60,11 @@ export default async function GameList({
       </div>
     );
   };
+
+  function formatDateStr(dateStr: string) {
+    const temp = dateStr.slice(0, dateStr.length - 14) + '+' + dateStr.slice(dateStr.length - 13);
+    return temp;
+  }
   return (
     <div className="flex flex-col items-center">
       <section className="w-full h-[520px]">
@@ -90,7 +94,7 @@ export default async function GameList({
           <div className="flex gap-8 mt-4 items-center">
             <div className="flex flex-col gap-2">
               <p className="font-bold">{`출시일 (선택일 이후)`}</p>
-              <CustomDateTimePicker init={undefined} />
+              <CustomDateTimePicker init={formatDateStr(releaseDateStr)} />
             </div>
             <div className="flex flex-col gap-2">
               <p className="font-bold">{`출시 상태`}</p>
