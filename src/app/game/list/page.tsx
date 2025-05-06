@@ -8,9 +8,6 @@ import CustomGenres from './components/CustomGenres';
 import typeConverter from '@/utils/typeConverter';
 import CustomResetComponent from './components/CustomResetComponent';
 import SuspendedGameDisplay from './components/SuspendedGameDisplay';
-import { getQueryClient } from '@/hooks/getQueryClient';
-import { getGames } from './getGames';
-import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -54,11 +51,6 @@ export default async function GameList({
     size: 12,
     sort: [],
   };
-  const queryClient = getQueryClient();
-  await queryClient.prefetchQuery({
-    queryKey: ['games', step, pagination],
-    queryFn: async () => getGames(step, pagination),
-  });
   function formatDateStr(dateStr: string) {
     const temp = dateStr.slice(0, dateStr.length - 14) + '+' + dateStr.slice(dateStr.length - 13);
     return temp;
@@ -132,11 +124,9 @@ export default async function GameList({
           </div>
         </div>
       </div>
-      <HydrationBoundary state={dehydrate(queryClient)}>
-        <Suspense fallback={<PickCardSkeletons />}>
-          <SuspendedGameDisplay pagination={pagination} step={step} />
-        </Suspense>
-      </HydrationBoundary>
+      <Suspense fallback={<PickCardSkeletons />}>
+        <SuspendedGameDisplay pagination={pagination} step={step} />
+      </Suspense>
     </div>
   );
 }
